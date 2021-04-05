@@ -16,37 +16,24 @@ int main(int argc, char *argv[])
         strcpy(b, argv[1]);
     }
     chdir(b);
-    int a[2];   // reading and a[1] is for
-                // writing over a pipe
-    pipe(a);    //piping for interprocess communication
-    if (!fork())
+    int a[2]; // a[0] is for reading and a[1] is for writing in pipe
+    pipe(a);  //pipe for interprocess communication
+    pid_t child_pid;
+    child_pid = fork();
+
+    if (child_pid == 0) //executing ls command in child process
     {
-        // closing normal stdout
-        close(1);
-
-        // making stdout same as a[1]
-        dup(a[1]);
-
-        // closing reading part of pipe
-        // we don't need of it at this time
-        close(a[0]);
-
-        // executing ls
-        execlp("ls", "ls", NULL);
+        close(1);                 // closing normal stdout
+        dup(a[1]);                // making stdout same as a[1]
+        close(a[0]);              //closing reading part of pipe
+        execlp("ls", "ls", NULL); //executing ls command with no arguments passed
     }
     else
     {
-        // closing normal stdin
-        close(0);
-
-        // making stdin same as a[0]
-        dup(a[0]);
-
-        // closing writing part in parent,
-        // we don't need of it at this time
-        close(a[1]);
-
-        // executing wc
-        execlp("wc", "wc", "-l", NULL);
+        wait(NULL);                     //waiting for child to finish
+        close(0);                       // closing normal stdin
+        dup(a[0]);                      // making stdin same as a[0]
+        close(a[1]);                    // closing writing part in parent
+        execlp("wc", "wc", "-l", NULL); //piping the ls with the wc with arg l
     }
 }
