@@ -1,39 +1,44 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include <dirent.h>
+#include <string.h>
+
 int main(int argc, char *argv[])
 {
-    char b[100];
-    if (argc == 1)
+    struct dirent *de; // Pointer for directory entry
+    char s[100];
+    if (argc == 2)
     {
-        getcwd(b, 100);
-    }
-    else if (argc == 2)
-    {
-        strcpy(b, argv[1]);
-    }
-    chdir(b);
-    int a[2]; // a[0] is for reading and a[1] is for writing in pipe
-    pipe(a);  //pipe for interprocess communication
-    pid_t child_pid;
-    child_pid = fork();
-
-    if (child_pid == 0) //executing ls command in child process
-    {
-        close(1);                 // closing normal stdout
-        dup(a[1]);                // making stdout same as a[1]
-        close(a[0]);              //closing reading part of pipe
-        execlp("ls", "ls", NULL); //executing ls command with no arguments passed
+        strcpy(s, argv[1]);
     }
     else
     {
-        wait(NULL);                     //waiting for child to finish
-        close(0);                       // closing normal stdin
-        dup(a[0]);                      // making stdin same as a[0]
-        close(a[1]);                    // closing writing part in parent
-        execlp("wc", "wc", "-l", NULL); //piping the ls with the wc with arg l
+        strcpy(s, ".");
     }
+    DIR *dr = opendir(s);
+    if (dr == NULL) // opendir returns NULL if couldn't open directory
+    {
+        printf("Could not open current directory");
+        return 0;
+    }
+    int directories = 0;
+    int files = 0;
+    while ((de = readdir(dr)) != NULL)
+    {
+        if (de->d_type == 8)
+        {
+            files++;
+            printf("\nFile %d : %s", files, de->d_name);
+        }
+        else
+        {
+            directories++;
+            printf("\nDirectory %d : %s", directories, de->d_name);
+        }
+    }
+    printf("\n");
+    closedir(dr);
+
+    printf("\nNumber of Directories is : %d", directories);
+    printf("\nNumber of files is : %d\n", files);
+    return 0;
 }
